@@ -31,7 +31,7 @@ This document is intended to manage Runes State Machine (RSM) and all contracts.
 | Contract-005 | Mikael.btc | A Decentralized Airdrop Contract                             |         |              |
 | Contract-004 | Mikael.btc | A Liquid Staking/Restaking Contract for Runes, BTC, BRC-20 and BRC-100 |         |              |
 | Contract-003 | Mikael.btc | A Relay Contract among Bitcoin, Runes, BRC-100 and BRC-20    |         |              |
-| Contract-002 | Mikael.btc | An Automated Liquidity Contract for Runes Assets             |         |              |
+| [Contract-002](https://github.com/RSM-Runes-State-Machine/RSM-documentation/blob/main/Contracts/Contract-002.md) | Mikael.btc | An Automated Liquidity Contract for Runes Assets             | Relesed |  Jul. 8 2024 |
 | Contract-001 | Mikael.btc | A Decentralized On-Chain Governance Contract                 |         |              |
 | RSM          | Mikael.btc | RSM: Runes State Machine                                     | Relesed | Jun. 21 2024 |
 
