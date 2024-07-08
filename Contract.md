@@ -1,4 +1,4 @@
-# RSM: Contract
+# RSM: Abstract Contract
 
 RSM is a Turing-Complete State Machine for Runes Protocol.
 
