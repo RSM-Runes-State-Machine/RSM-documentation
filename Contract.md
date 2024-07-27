@@ -40,14 +40,14 @@ Etching is used to deploy token in Runes protocol. RSM keeps the compatibility w
 | Attribute                    | Description                                                  | Required? | Upgradable? |
 | :--------------------------- | :----------------------------------------------------------- | :-------- | :---------- |
 | contract                     | The contract token impelments                                | No        | No          |
-| Terms.mint2Amount            | Can only be minted by operator "mint2", default: 0           | No        | No          |
+| mint2Amount                  | Can only be minted by operator "mint2", default: no limitation   | No        | No          |
 | burn3ableRuneIds             | Burn3able RuneIds, default: does not support burn3           | No        | No          |
+| admins                       | Administrators, can be address or application                | No        | Yes         |
 | Trading.blackHolePercentage  | Black hole percentage in AMM DEX, default: 0                 | No        | Yes         |
 | Trading.taxPercentage        | Tax percentage in AMM DEX, default: 0                        | No        | Yes         |
-| Trading.taxReceiver          | Tax receiver                                                 | No        | Yes         |
-| Trading.lpFeePercentage      | Liquidity Provider Fee Percentage for AMM DEX, default: 0.002 | No        | Yes         |
-| Trading.serviceFeePercentage | Service Fee Percentage for AMM DEX, default: 0.001           | No        | Yes         |
-| Trading.serviceFeeReceiver   | Service Fee Receiver for AMM DEX, to Owner if not set        | No        | Yes         |
+| Trading.lpFeePercentage      | Liquidity Provider Fee Percentage for AMM DEX, divisibility: 4, default: 20 | No        | Yes         |
+| Trading.serviceFeePercentage | Service Fee Percentage for AMM DEX, divisibility: 4, default: 10           | No        | Yes         |
+| Trading.devAddress           | Service Fee and Tax Receiver for AMM DEX, to Owner if not set        | No        | Yes         |
 | DAO.started                  | Is DAO started, default: false                               | No        | Yes         |
 | DAO.voteLimit                | DAO vote limit                                               | No        | Yes         |
 | DAO.timeLock                 | Governance time lock, how many blocks the governance will be executed after the "can be executed" status, default: 144 | No        | Yes         |
@@ -64,7 +64,9 @@ struct Etching {
   symbol: Option<char>,
   terms: Option<Terms>,
   contract: Option<u16>,
+  mint2Amount: Option<u128>,
   burn3ableRuneIds: Option<Vec<u128>>,
+  admins: Option<Vec<String>>,
   trading: Option<Trading>,
   dao: Option<DAO>,
   ext: Option<Ext>,
@@ -77,7 +79,6 @@ struct Terms {
   cap: Option<u128>,
   height: (Option<u64>, Option<u64>),
   offset: (Option<u64>, Option<u64>),
-  mint2Amount: Option<u128>,
 }
 ```
 
@@ -85,10 +86,9 @@ struct Terms {
 struct Trading {
   blackHolePercentage: Option<u32>,
   taxPercentage: Option<u32>,
-  taxReceiver: Option<String>,
   lpFeePercentage: Option<u32>,
   serviceFeePercentage: Option<u32>,
-  serviceFeeReceiver: Option<String>,
+  devAddress: Option<String>,
 }
 ```
 
@@ -114,11 +114,13 @@ Etching {
     cap: 300000,
   },
   contract: null,
+  mint2Amount: 0,
   burn3ableRuneIds: null,
+  admins: null,
   trading: Trading {
     blackHolePercentage: 0.01,
     taxPercentage: 0.02,
-    taxReceiver: "bc1pzwv3gfp8yvu0w893ekhte8h63cq0u306k62qnwgvpyy0naw7npjqvf4qhg",
+    devAddress: "bc1pzwv3gfp8yvu0w893ekhte8h63cq0u306k62qnwgvpyy0naw7npjqvf4qhg",
   },
   dao: DAO {
     started: 1,
@@ -129,7 +131,7 @@ Etching {
 }
 ```
 
-The following is another Etching example, deploying a child LP token for an AMM DEX token. The child LP token implements the LP contract: Contract-002.
+The following is another Etching example, deploying a child LP token for the parent application: AMM•DEX. The child LP token implements the LP contract: Contract-002.
 
 ```
 Etching {
@@ -138,12 +140,15 @@ Etching {
   rune: "AMM•DEX:LP•RSM•WBTC",
   spacers: 528,
   symbol: "💡",
+  terms: null,
   contract: "Contract-002",
+  mint2Amount: null,
   burn3ableRuneIds: ["RSM•RUNES•STATE•MACHINE","WBTC"],
+  admins: null,
   trading: Trading {
     lpFeePercentage: 0.002,
     serviceFeePercentage: 0.001,
-    serviceFeeReceiver: "bc1pzwv3gfp8yvu0w893ekhte8h63cq0u306k62qnwgvpyy0naw7npjqvf4qhg",
+    devAddress: "bc1pzwv3gfp8yvu0w893ekhte8h63cq0u306k62qnwgvpyy0naw7npjqvf4qhg",
   },
   dao: null,
   ext: null,
@@ -230,7 +235,6 @@ Mint struct is a new data structure used in RSM to express mint2 and mint3 opera
 
 ```
 struct Mint {
-  from: RuneId,
   stateTransitionFunction: u32,
   edicts: Vec<Edict>,
   proof: Option<Proof>,
@@ -242,7 +246,6 @@ For example, in the lending application, after deposited token, the user uses "m
 
 ```
 mint2 { 
-  from: "RUNES•Lending:CBTC",
   stateTransitionFunction: "mint_ctoken",
   edicts: [ Edict {
     id: "RUNES•Lending:CBTC",
@@ -256,7 +259,6 @@ For example, "mint3" the exchanged token in AMM DEX.
 
 ```
 mint3 { 
-  from: "AMM•DEX:LP•RSM•WBTC",
   stateTransitionFunction: "withdraw",
   edicts: [ Edict {
     id: "WBTC",
@@ -268,16 +270,17 @@ mint3 {
 
 # State
 
-This chapter will describe the pre-defined states in the Contract. All the Contracts can use these states to describe the computing logic of the application, also, they can define their own states. The indexers should display these states to users to ensure that the states are open and consistent. All the states should be stored in Merkle Tree and the root of the tree should be displayed to the user. The states are the results computed by the RSM according to users' UTXO input and state transition function defined in the Contract. States can be variables of application, or the state balances of users in application. The states can be in application or child application. The difference between application states and application attributes is that updating attributes need to be completed through governance, but the states are computed by the public algorithms and rules defined in state transition function, and do not require governance. In RSM, there are two kinds of balance: one is UTXO Balance, which is held by addresses as same as Runes protocol; the other one is State Balance introduced by the State Machine model, which can be held by applications or addresses in application. RSM defines the following 4 states to describe the State Balance in application:
+This chapter will describe the pre-defined states in the Contract. All the Contracts can use these states to describe the computing logic of the application, also, they can define their own states. The indexers should display these states to users to ensure that the states are open and consistent. All the states should be stored in Merkle Tree and the root of the tree should be displayed to the user. The states are the results computed by the RSM according to users' UTXO input and state transition function defined in the Contract. States can be variables of application, or the state balances of users in application. The states can be in application or child application. The difference between application states and application attributes is that updating attributes need to be completed through governance, but the states are computed by the public algorithms and rules defined in state transition function, and do not require governance. In RSM, there are two kinds of balance: one is UTXO Balance, which is held by addresses as same as Runes protocol; the other one is State Balance introduced by the State Machine model, which can be held by applications or addresses in application. RSM defines the following 5 states to describe the State Balance in application:
 
+- supply, represents the total supply of the current token, equals to "token amount minted" + " token amount mint2ed" - " token amount burn2ed".
 - sb2, State Balance for mint2, used to express the token amount that an address can mint2 from the current application, can be minted by the State Transition Function: w2.
 - sb3, State Balance for mint3, used to express the token amount that an address can mint3 from the current application, can be minted by the State Transition Function: w3.
 - sba2, State Balance of Application for mint2, used to express the total token amount that can be "mint2"ed from the current application, equals to the sum of token amount in state sb2.
 - sba3, State Balance of Application for mint3, used to express the total token amount that can be "mint3"ed from the current application, the sum of token amount in state sb3 cannot be greater than the value in sba3.
 
-# State Transition Function
+# State Transition Function (stf)
 
-State Transition Function (STF) represents the computing capabilities of the Contact, which is expressed by the attribute "stateTransitionFunction" of Mint and Burn struct, and need to be used in conjunction with mint2/mint3/burn2/burn3 operators. State Transition Function defines how the application should compute to update the states when the user performs mint2/mint3/burn2/burn3 operations. All the Contracts can define any State Transition Function that are not repeated within the Contract. The following will describe the 2 pre-defined State Transition Functions: w2 and w3 for all the Contracts in RSM. These 2 State Transition Functions cannot be changed or deleted by any Contract.
+State Transition Function (stf) represents the computing capabilities of the Contact, which is expressed by the attribute "stateTransitionFunction" of Mint and Burn struct, and need to be used in conjunction with mint2/mint3/burn2/burn3 operators. State Transition Function defines how the application should compute to update the states when the user performs mint2/mint3/burn2/burn3 operations. All the Contracts can define any State Transition Function that are not repeated within the Contract. The following will describe the 2 pre-defined State Transition Functions: w2 and w3 for all the Contracts in RSM. These 2 State Transition Functions cannot be changed or deleted by any Contract.
 
 ## 1. Withdraw: w2/w3
 
@@ -287,7 +290,6 @@ For example, in the decentralized stablecoin application, user can withdraw the 
 
 ```
 mint2 { 
-  from: "Runes•Stablecoin:DUSD",
   stateTransitionFunction: "w2",
   edicts: [ Edict {
     id: "Runes•Stablecoin:DUSD",
@@ -299,4 +301,4 @@ mint2 {
 
 ## 2. Computing Failure
 
-The state transition function may be failed. After the failure, the indexer needs to treat the UTXOs corresponding to the state transition function as invalid UTXOs.
+The state transition function may be failed. After failure, the indexer needs to add the token amount in the UTXOs corresponding to the state transition function to the state: sb2 or sb3 of the user.
