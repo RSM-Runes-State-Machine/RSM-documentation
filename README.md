@@ -110,9 +110,9 @@ Besides the UTXO model, RSM also introduces the state machine model to expand th
 
 The conversion of UTXO and state is completed through the newly introduced operators: burn2/burn3/mint2/mint3 and the state transition function. The state transition function is used to represent the specific computing rules to update the state and UTXO. For example, user A sends 10 token1 assets to Application2 through the burn3 operator to trigger the computing of the state transition function in Application2 and complete the conversion from UTXO to state. Currently, Application2 owns the UTXO, and holds these 10 token1 in the state; then, RSM can distribute these 10 token1 by changing the internal state of Application2 according to the pre-defined logic in the implemented Contract. User B who receives token1 can mint the internal state balance in the form of UTXO to his own wallet through the operator mint3, to complete the conversion from state to UTXO.
 
-## 5. State Transition Function
+## 5. State Transition Function (stf)
 
-State Transition Function is defined in the Contract, that computes the next state of the token given the current state and UTXO inputs, and is the smallest unit of RSM computing capability. State Transition Function is used in conjunction with operators: burn2/burn3/mint2/mint3 to complete the conversion between UTXO and state. Among them, burn2/burn3 defines how the internal states of the token update after the corresponding UTXOs are transferred, and mint2/mint3 defines that after the internal states update, the corresponding UTXOs will be transferred to the user.
+State Transition Function (stf) is defined in the Contract, that computes the next state of the token given the current state and UTXO inputs, and is the smallest unit of RSM computing capability. State Transition Function is used in conjunction with operators: burn2/burn3/mint2/mint3 to complete the conversion between UTXO and state. Among them, burn2/burn3 defines how the internal states of the token update after the corresponding UTXOs are transferred, and mint2/mint3 defines that after the internal states update, the corresponding UTXOs will be transferred to the user.
 
 ## 6. Decentralized Governance of Token
 
